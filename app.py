@@ -105,7 +105,7 @@ def generate_plot(df):
 
 def main():
     st.title("Santorini Seismic Activity Dashboard")
-    st.write("This Streamlit app fetches and visualizes real-time earthquake data for the Santorini area provided by Geophysics Department of the University of Athens.")
+    st.write("This Streamlit app fetches and visualizes real-time earthquake data for the Santorini area provided by the Geophysics Department of the University of Athens.")
     
     # Button to trigger data fetching and plotting
     if st.button("Generate Seismic Plot"):
