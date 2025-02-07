@@ -18,7 +18,7 @@ This Streamlit app visualizes seismic activity data near Santorini, Greece. It f
 
 1. Clone this repository:
    ```bash
-   git clone sgkouzias/Santorini-Earthquake-Monitor
+   git clone https://github.com/sgkouzias/Santorini-Earthquake-Monitor.git
    ```
 
 2. Install the required packages:
