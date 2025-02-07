@@ -91,12 +91,12 @@ def generate_plot(df):
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(time, magnitude, label='Magnitude')
     ax.plot(time, quadratic_trend, linestyle='--', color='red', label='Quadratic Trend')
-    ax.set_xlabel('Ημερομηνία - Ώρα')
+    ax.set_xlabel('Ημερομηνία')
     ax.set_ylabel('Μέγεθος')
     ax.set_title('Σεισμική Ακολουθία στην Σαντορίνη')
     
     # Format the x-axis dates
-    date_format = mdates.DateFormatter('%d/%m %H:%M')
+    date_format = mdates.DateFormatter('%d/%m')
     ax.xaxis.set_major_formatter(date_format)
     plt.legend()
     plt.tight_layout()
