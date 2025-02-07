@@ -14,7 +14,7 @@ def fetch_data():
     Returns a DataFrame after filtering for the Santorini area and shallow earthquakes.
     """
     # URL of the site
-    url = "http://www.geophysics.geol.uoa.gr/stations/maps/recent_gr.html"
+    url = "http://www.geophysics.geol.uoa.gr/stations/maps/recent_eq_10d_el.htm"
     
     # Fetch the content of the page
     response = requests.get(url)
