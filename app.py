@@ -98,7 +98,7 @@ def generate_plot(df):
     # Format the x-axis dates
     date_format = mdates.DateFormatter('%d/%m')
     ax.xaxis.set_major_formatter(date_format)
-    plt.legend(loc='upper_left')
+    plt.legend(loc='upper left') 
     plt.tight_layout()
     
     return fig
