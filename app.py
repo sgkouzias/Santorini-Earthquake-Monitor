@@ -7,117 +7,103 @@ import matplotlib.dates as mdates
 import numpy as np
 import pandas as pd
 
+BASE_URL = "http://www.geophysics.geol.uoa.gr/stations/maps/"
+DATA_URLS = {
+    "Last 2 Days": "recent_eq_2d_el.htm",
+    "Last 10 Days": "recent_eq_10d_el.htm",
+    "Last 20 Days": "recent_eq_20d_el.htm"
+}
+
 @st.cache_data(show_spinner=False)
-def fetch_data():
+def fetch_data(time_range):
     """
-    Fetches and processes the seismic data from the source.
-    Returns a DataFrame after filtering for the Santorini area and shallow earthquakes.
+    Fetch and process the seismic data for the given time range.
+    Returns a DataFrame filtered for the Santorini area and shallow earthquakes.
     """
-    # URL of the site
-    url = "http://www.geophysics.geol.uoa.gr/stations/maps/recent_eq_10d_el.htm"
+    url = BASE_URL + DATA_URLS[time_range]
     
-    # Fetch the content of the page
-    response = requests.get(url)
-    response.raise_for_status()
-    
-    # Set the proper encoding (try iso-8859-7 for Greek pages)
-    response.encoding = 'iso-8859-7'
-    
-    # Parse the HTML content
-    soup = BeautifulSoup(response.text, 'html.parser')
-    
-    # Find all table elements
-    tables = soup.find_all('table')
-    if len(tables) < 3:
-        st.error("Less than 3 tables found on the page.")
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        response.encoding = 'iso-8859-7'
+    except requests.RequestException as e:
+        st.error(f"Error fetching data: {e}")
         return None
     
-    # Select table 3 (index 2)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    tables = soup.find_all('table')
+    if len(tables) < 3:
+        st.error("Insufficient tables found on the page.")
+        return None
+    
     table = tables[2]
-    
-    # Extract table headers, if present
-    headers = []
-    header_row = table.find('tr')
-    if header_row:
-        headers = [th.get_text(strip=True) for th in header_row.find_all('th')]
-    
-    # Extract table rows
     data = []
-    rows = table.find_all('tr')
-    for row in rows:
-        # Skip rows that contain headers
-        if row.find_all('th'):
-            continue
+    for row in table.find_all('tr')[1:]:
         row_data = [td.get_text(strip=True) for td in row.find_all('td')]
         if row_data:
             data.append(row_data)
     
-    # Create a DataFrame
-    if data:
-        if headers and len(headers) == len(data[0]):
-            df = pd.DataFrame(data, columns=headers)
-        else:
-            df = pd.DataFrame(data)
-    else:
-        st.error("No data rows found in table 3.")
-        return None
-
-    # Filter data for Santorini area and depth less than 100 km
-    df_santorini = df[df['Επίκεντρο'].str.contains('Θήρας')]
-    filtered_df = df_santorini[df_santorini['Βάθος(χμ)'].astype(np.float32) < 100.]
+    if not data:
+        st.error("No data found in the extracted table.")
+        return None   
+  
+    # Ensure we take only the first 6 columns in case of extra ones
+    expected_columns = ["Origin Time (GMT)", "Epicenter", "Latitude", "Longitude", "Depth (km)", "Magnitude"]
+    df = pd.DataFrame([row[2:] for row in data], columns=expected_columns)
+    df = df.iloc[:, :len(expected_columns)]  # Trim to expected columns
     
-    return filtered_df
+    if df.shape[1] != len(expected_columns):
+        st.error(f"Unexpected table format. Expected {len(expected_columns)} columns, got {df.shape[1]}.")
+        return None
+    
+    df.columns = expected_columns
+    df = df[df['Epicenter'].str.contains('Θήρας', na=False)]
+    df = df[pd.to_numeric(df['Depth (km)'], errors='coerce') < 100]
+    
+    return df
 
-def generate_plot(df):
-    """
-    Generates a matplotlib plot for the given DataFrame.
-    """
+def generate_plot(df, time_range):
+    """Generate a matplotlib plot for the given DataFrame."""
     try:
-        # Reverse the order of time and magnitude for plotting
-        time_strings = df['Χρόνος Γένεσης(GMT)'].values[::-1]
-        time = np.array([datetime.strptime(ts, '%d/%m/%Y %H:%M:%S') for ts in time_strings])
-        magnitude = df['Μέγ.'].values[::-1].astype(np.float32)
+        time = np.array([datetime.strptime(ts, '%d/%m/%Y %H:%M:%S') for ts in df['Origin Time (GMT)']])
+        magnitude = df['Magnitude'].astype(float)
     except Exception as e:
-        st.error("Error processing date/time or magnitude data.")
-        st.error(e)
+        st.error(f"Error processing data: {e}")
         return None
     
-    # Compute the quadratic trendline (polynomial of degree 2)
     coefficients = np.polyfit(range(len(time)), magnitude, 2)
-    polynomial = np.poly1d(coefficients)
-    quadratic_trend = polynomial(range(len(time)))
+    quadratic_trend = np.poly1d(coefficients)(range(len(time)))
     
-    # Create the plot
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(time, magnitude, label='Magnitude')
     ax.plot(time, quadratic_trend, linestyle='--', color='red', label='Quadratic Trend')
-    ax.set_xlabel('Ημερομηνία')
-    ax.set_ylabel('Μέγεθος')
-    ax.set_title('Σεισμική Ακολουθία στην Σαντορίνη')
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Magnitude')
+    ax.set_title(f'Seismic Activity near Santorini - {time_range}')
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m %H:%M' if time_range == "Last 2 Days" else '%d/%m'))
     
-    # Format the x-axis dates
-    date_format = mdates.DateFormatter('%d/%m')
-    ax.xaxis.set_major_formatter(date_format)
-    plt.legend(loc='upper left') 
+    plt.legend(loc='upper left')
     plt.tight_layout()
     
     return fig
 
 def main():
     st.title("Santorini Seismic Activity Dashboard")
-    st.write("This Streamlit app fetches and visualizes real-time earthquake data for the Santorini area provided by the Geophysics Department of the University of Athens.")
+    st.write("Fetches and visualizes real-time earthquake data for the Santorini area.")
     
-    # Button to trigger data fetching and plotting
-    if st.button("Generate Seismic Plot"):
-        with st.spinner("Fetching and processing data..."):
-            df = fetch_data()
-        
-        if df is not None and not df.empty:
-            fig = generate_plot(df)
-            if fig:
-                st.pyplot(fig)
-        else:
-            st.error("No data available to plot.")
+    cols = st.columns(len(DATA_URLS))
+    for col, (time_range, url) in zip(cols, DATA_URLS.items()):
+        with col:
+            if st.button(f"Generate Plot ({time_range})"):
+                with st.spinner(f"Fetching data for {time_range}..."):
+                    df = fetch_data(time_range)
+            
+                if df is not None and not df.empty:
+                    fig = generate_plot(df, time_range)
+                    if fig:
+                        st.pyplot(fig)
+                else:
+                    st.error("No data available to plot.")
 
 if __name__ == "__main__":
     main()
