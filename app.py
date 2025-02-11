@@ -4,7 +4,9 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import numpy as np
 import pandas as pd
-import plotly.express as px
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+import plotly.graph_objects as go
 
 BASE_URL = "http://www.geophysics.geol.uoa.gr/stations/maps/"
 DATA_URLS = {
@@ -61,27 +63,58 @@ def fetch_data(time_range):
     return df
 
 def generate_plot(df, time_range):
-    """Generate an interactive Plotly plot for the given DataFrame."""
+    """Generate a Matplotlib plot and convert it into an interactive Plotly figure."""
     try:
-        df['Time'] = pd.to_datetime(df['Origin Time (GMT)'])
-        df['Magnitude'] = df['Magnitude'].astype(float)
+        time = np.array([datetime.strptime(ts, '%d/%m/%Y %H:%M:%S') for ts in df['Origin Time (GMT)']])
+        magnitude = df['Magnitude'].astype(float)
     except Exception as e:
         st.error(f"Error processing data: {e}")
         return None
 
-    # Create interactive scatter plot
-    fig = px.scatter(df, x='Time', y='Magnitude', 
-                     title=f'Seismic Activity near Santorini - {time_range}',
-                     labels={'Time': 'Date', 'Magnitude': 'Magnitude'},
-                     hover_data={'Magnitude': True, 'Time': True})
+    coefficients = np.polyfit(range(len(time)), magnitude, 2)
+    quadratic_trend = np.poly1d(coefficients)(range(len(time)))
 
-    # Add trend line
-    coefficients = np.polyfit(range(len(df)), df['Magnitude'], 2)
-    df['Trend'] = np.poly1d(coefficients)(range(len(df)))
-    fig.add_scatter(x=df['Time'], y=df['Trend'], mode='lines', 
-                    name='Quadratic Trend', line=dict(color='red', dash='dash'))
+    # Create Matplotlib figure
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(time, magnitude, marker='o', linestyle='-', label='Magnitude', color='blue')
+    ax.plot(time, quadratic_trend, linestyle='--', color='red', label='Quadratic Trend')
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Magnitude')
+    ax.set_title(f'Seismic Activity near Santorini - {time_range}')
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m %H:%M' if time_range == "Last 2 Days" else '%d/%m'))
 
-    return fig
+    plt.legend(loc='upper left')
+    plt.tight_layout()
+
+    # Convert Matplotlib figure to Plotly for interactivity
+    plotly_fig = go.Figure()
+
+    # Add main magnitude line with hover tooltips
+    plotly_fig.add_trace(go.Scatter(
+        x=time, y=magnitude, mode='lines+markers',
+        name='Magnitude',
+        line=dict(color='blue'),
+        marker=dict(size=6),
+        hovertemplate="<b>Magnitude:</b> %{y}<br><b>Time:</b> %{x}<extra></extra>"
+    ))
+
+    # Add quadratic trend line
+    plotly_fig.add_trace(go.Scatter(
+        x=time, y=quadratic_trend, mode='lines',
+        name='Quadratic Trend',
+        line=dict(color='red', dash='dash')
+    ))
+
+    plotly_fig.update_layout(
+        title=f'Seismic Activity near Santorini - {time_range}',
+        xaxis_title='Date',
+        yaxis_title='Magnitude',
+        xaxis=dict(showgrid=True, gridwidth=1),
+        yaxis=dict(showgrid=True, gridwidth=1),
+        hovermode="x unified"
+    )
+
+    return plotly_fig
 
 def main():
     st.title("Santorini Seismic Activity Dashboard")
