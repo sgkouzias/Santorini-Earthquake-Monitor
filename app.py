@@ -74,7 +74,7 @@ def generate_plot(df, time_range):
     coefficients = np.polyfit(range(len(time)), magnitude, 2)
     quadratic_trend = np.poly1d(coefficients)(range(len(time)))
 
-    # Create Matplotlib figure (for backup if needed)
+    # Create Matplotlib figure (for reference)
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(time, magnitude, marker='o', linestyle='-', label='Magnitude', color='blue')
     ax.plot(time, quadratic_trend, linestyle='--', color='red', label='Quadratic Trend')
@@ -85,10 +85,10 @@ def generate_plot(df, time_range):
     plt.legend(loc='upper left')
     plt.tight_layout()
 
-    # Convert Matplotlib figure to Plotly for interactivity
+    # Convert to Plotly for interactivity
     plotly_fig = go.Figure()
 
-    # Add main magnitude line with hover tooltips
+    # Main magnitude line with hover tooltips
     plotly_fig.add_trace(go.Scatter(
         x=time, y=magnitude, mode='lines+markers',
         name='Magnitude',
@@ -97,14 +97,14 @@ def generate_plot(df, time_range):
         hovertemplate="<b>Magnitude:</b> %{y}<br><b>Time:</b> %{x}<extra></extra>"
     ))
 
-    # Add quadratic trend line
+    # Quadratic trend line
     plotly_fig.add_trace(go.Scatter(
         x=time, y=quadratic_trend, mode='lines',
         name='Quadratic Trend',
         line=dict(color='red', dash='dash')
     ))
 
-    # Keep full interactivity
+    # Customize layout for better visibility
     plotly_fig.update_layout(
         title=f'Seismic Activity near Santorini - {time_range}',
         xaxis_title='Date',
@@ -131,8 +131,16 @@ def main():
                 if df is not None and not df.empty:
                     fig = generate_plot(df, time_range)
                     if fig:
-                        # KEEP MAXIMIZATION FEATURE
-                        st.plotly_chart(fig, use_container_width=True)
+                        # KEEP MAXIMIZATION FEATURE AND REMOVE CLUTTERED ICONS
+                        st.plotly_chart(fig, use_container_width=True, config={
+                            "displayModeBar": True,
+                            "modeBarButtonsToRemove": [
+                                "zoom2d", "select2d", "lasso2d", "autoScale2d", 
+                                "hoverClosestCartesian", "hoverCompareCartesian", 
+                                "resetScale2d", "toImage"
+                            ],
+                            "displaylogo": False
+                        })
                 else:
                     st.error("No data available to plot.")
 
