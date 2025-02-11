@@ -74,7 +74,7 @@ def generate_plot(df, time_range):
     coefficients = np.polyfit(range(len(time)), magnitude, 2)
     quadratic_trend = np.poly1d(coefficients)(range(len(time)))
 
-    # Create Matplotlib figure
+    # Create Matplotlib figure (for backup if needed)
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(time, magnitude, marker='o', linestyle='-', label='Magnitude', color='blue')
     ax.plot(time, quadratic_trend, linestyle='--', color='red', label='Quadratic Trend')
@@ -82,7 +82,6 @@ def generate_plot(df, time_range):
     ax.set_ylabel('Magnitude')
     ax.set_title(f'Seismic Activity near Santorini - {time_range}')
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m %H:%M' if time_range == "Last 2 Days" else '%d/%m'))
-
     plt.legend(loc='upper left')
     plt.tight_layout()
 
@@ -105,13 +104,15 @@ def generate_plot(df, time_range):
         line=dict(color='red', dash='dash')
     ))
 
+    # Keep full interactivity
     plotly_fig.update_layout(
         title=f'Seismic Activity near Santorini - {time_range}',
         xaxis_title='Date',
         yaxis_title='Magnitude',
         xaxis=dict(showgrid=True, gridwidth=1),
         yaxis=dict(showgrid=True, gridwidth=1),
-        hovermode="x unified"
+        hovermode="x unified",
+        autosize=True
     )
 
     return plotly_fig
@@ -130,6 +131,7 @@ def main():
                 if df is not None and not df.empty:
                     fig = generate_plot(df, time_range)
                     if fig:
+                        # KEEP MAXIMIZATION FEATURE
                         st.plotly_chart(fig, use_container_width=True)
                 else:
                     st.error("No data available to plot.")
