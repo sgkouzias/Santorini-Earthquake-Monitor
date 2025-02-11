@@ -6,6 +6,7 @@ from matplotlib import pyplot as plt
 import matplotlib.dates as mdates
 import numpy as np
 import pandas as pd
+import mpld3
 
 BASE_URL = "http://www.geophysics.geol.uoa.gr/stations/maps/"
 DATA_URLS = {
@@ -36,8 +37,8 @@ def fetch_data(time_range):
         st.error("Insufficient tables found on the page.")
         return None
     
-    table = tables[2]
-    data = []
+    table = tables
+    data =
     for row in table.find_all('tr')[1:]:
         row_data = [td.get_text(strip=True) for td in row.find_all('td')]
         if row_data:
@@ -50,10 +51,10 @@ def fetch_data(time_range):
     # Ensure we take only the first 6 columns in case of extra ones
     expected_columns = ["Origin Time (GMT)", "Epicenter", "Latitude", "Longitude", "Depth (km)", "Magnitude"]
     df = pd.DataFrame([row[2:] for row in data], columns=expected_columns)
-    df = df.iloc[:, :len(expected_columns)]  # Trim to expected columns
+    df = df.iloc[:,:len(expected_columns)]  # Trim to expected columns
     
-    if df.shape[1] != len(expected_columns):
-        st.error(f"Unexpected table format. Expected {len(expected_columns)} columns, got {df.shape[1]}.")
+    if df.shape!= len(expected_columns):
+        st.error(f"Unexpected table format. Expected {len(expected_columns)} columns, got {df.shape}.")
         return None
     
     df.columns = expected_columns
@@ -75,13 +76,17 @@ def generate_plot(df, time_range):
     quadratic_trend = np.poly1d(coefficients)(range(len(time)))
     
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(time, magnitude, label='Magnitude')
+    points = ax.plot(time, magnitude, label='Magnitude', marker='o')
     ax.plot(time, quadratic_trend, linestyle='--', color='red', label='Quadratic Trend')
     ax.set_xlabel('Date')
     ax.set_ylabel('Magnitude')
     ax.set_title(f'Seismic Activity near Santorini - {time_range}')
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m %H:%M' if time_range == "Last 2 Days" else '%d/%m'))
     
+    # Add tooltips
+    tooltip = mpld3.plugins.PointLabelTooltip(points, labels=magnitude.tolist())
+    mpld3.plugins.connect(fig, tooltip)
+
     plt.legend(loc='upper left')
     plt.tight_layout()
     
