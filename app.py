@@ -121,28 +121,39 @@ def main():
     st.title("Santorini Seismic Activity Dashboard")
     st.write("Fetches and visualizes real-time earthquake data for the Santorini area.")
 
-    cols = st.columns(len(DATA_URLS))
-    for col, (time_range, url) in zip(cols, DATA_URLS.items()):
-        with col:
-            if st.button(f"Generate Plot ({time_range})"):
-                with st.spinner(f"Fetching data for {time_range}..."):
-                    df = fetch_data(time_range)
+    if "selected_time_range" not in st.session_state:
+        st.session_state.selected_time_range = None
 
-                if df is not None and not df.empty:
-                    fig = generate_plot(df, time_range)
-                    if fig:
-                        # KEEP MAXIMIZATION FEATURE AND REMOVE CLUTTERED ICONS
-                        st.plotly_chart(fig, use_container_width=True, config={
-                            "displayModeBar": True,
-                            "modeBarButtonsToRemove": [
-                                "zoom2d", "select2d", "lasso2d", "autoScale2d", 
-                                "hoverClosestCartesian", "hoverCompareCartesian", 
-                                "resetScale2d", "toImage"
-                            ],
-                            "displaylogo": False
-                        })
-                else:
-                    st.error("No data available to plot.")
+    if st.session_state.selected_time_range:
+        # Fullscreen Mode
+        time_range = st.session_state.selected_time_range
+        df = fetch_data(time_range)
+
+        if df is not None and not df.empty:
+            fig = generate_plot(df, time_range)
+            if fig:
+                st.plotly_chart(fig, use_container_width=True, config={
+                    "displayModeBar": True,
+                    "modeBarButtonsToRemove": [
+                        "zoom2d", "select2d", "lasso2d", "autoScale2d", 
+                        "hoverClosestCartesian", "hoverCompareCartesian", 
+                        "resetScale2d", "toImage"
+                    ],
+                    "displaylogo": False
+                })
+
+        # Back button to return to the main selection page
+        if st.button("Back to Selection"):
+            st.session_state.selected_time_range = None
+            st.rerun()
+    else:
+        # Main selection page
+        cols = st.columns(len(DATA_URLS))
+        for col, (time_range, url) in zip(cols, DATA_URLS.items()):
+            with col:
+                if st.button(f"Generate Plot ({time_range})"):
+                    st.session_state.selected_time_range = time_range
+                    st.rerun()
 
 if __name__ == "__main__":
     main()
