@@ -21,8 +21,8 @@ dependencies = [
     "plotly"
 ]
 
-[project.scripts]
-make_dashboard = "app:main"
-
 [tool.setuptools]
-packages = ["."]  
+packages = ["src"] 
+
+[project.scripts]
+make_dashboard = "src.app:main"
