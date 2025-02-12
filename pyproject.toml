@@ -11,15 +11,15 @@ authors = [
 description = "A Streamlit-based application for visualizing and analyzing real-time earthquake data near Santorini."
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = [
-    "streamlit",
-    "requests",
-    "beautifulsoup4",
-    "numpy",
-    "pandas",
-    "matplotlib",
-    "plotly"
-]
+
+[project.dependencies] 
+pandas == "2.2.3"
+numpy == "2.0.2"
+matplotlib == "3.10.0"
+beautifulsoup4 == "4.12.3"
+plotly == "6.0.0"
+requests == "2.32.3"
+streamlit == "1.42.0"
 
 [tool.setuptools]
 packages = ["src"] 
