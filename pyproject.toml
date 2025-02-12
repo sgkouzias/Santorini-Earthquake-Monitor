@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "santorini-earthquake-monitor"
+version = "0.0.1"
+authors = [
+  { name="Sotiris Gkouzias"},
+]
+description = "A Streamlit-based application for visualizing and analyzing real-time earthquake data near Santorini."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "streamlit",
+    "requests",
+    "beautifulsoup4",
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "plotly"
+]
+
+[project.scripts]
+make_dashboard = "app:main"
