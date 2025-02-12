@@ -23,3 +23,6 @@ dependencies = [
 
 [project.scripts]
 make_dashboard = "app:main"
+
+[tool.setuptools]
+packages = ["."]  
